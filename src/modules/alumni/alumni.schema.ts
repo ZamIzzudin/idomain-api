@@ -47,6 +47,7 @@ export const alumniRegisterSchema = z.object({
   degree: z.string().min(1).optional().nullable(),
   specialization: z.string().min(1).optional().nullable(),
   institution: z.string().min(1).optional().nullable(),
+  photo: z.string().min(1).optional().nullable(),
 });
 
 export const alumniLoginSchema = z.object({

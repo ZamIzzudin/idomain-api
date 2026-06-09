@@ -87,7 +87,6 @@ export const alumniService = {
     if (!alumni) return null;
     if (!alumni.password) return null;
     if (alumni.status !== 1) return null;
-    if (!alumni.isApproved) return { error: "not_approved" } as any;
 
     const isValid = await bcrypt.compare(data.password, alumni.password);
     if (!isValid) return null;
@@ -98,6 +97,8 @@ export const alumniService = {
       id: alumni.id,
       name: alumni.name,
       email: alumni.email,
+      photo: alumni.photo,
+      isApproved: alumni.isApproved,
       access_token,
     };
   },

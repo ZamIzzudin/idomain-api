@@ -22,6 +22,15 @@ export const alumniRouter = Router();
 alumniRouter.post("/register", alumniController.register);
 alumniRouter.post("/login", alumniController.login);
 
+// Protected - Alumni self-service (profile)
+alumniRouter.get("/me", isAuthenticated, alumniController.getMe);
+alumniRouter.put(
+  "/me",
+  isAuthenticated,
+  upload.single("photo"),
+  alumniController.updateMe
+);
+
 // Public
 alumniRouter.get("/", alumniController.list);
 alumniRouter.get("/filter-options", alumniController.filterOptions);
