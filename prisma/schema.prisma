@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  username    String   @unique @db.VarChar(255)
+  displayName String?  @map("display_name") @db.VarChar(255)
+  password    String   @db.VarChar(255)
+  role        UserRole @default(ADMIN)
+  status      Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+}
+
+model Alumni {
+  id             Int       @id @default(autoincrement())
+  name           String    @db.VarChar(255)
+  email          String?   @db.VarChar(255)
+  password       String?   @db.VarChar(255)
+  contactNumber  String?   @map("contact_number") @db.VarChar(50)
+  graduationYear Int       @map("graduation_year")
+  degree         String?   @db.VarChar(255)
+  specialization String?   @db.VarChar(255)
+  institution    String?   @db.VarChar(255)
+  photo          String?   @db.VarChar(500)
+  photoPublicId  String?   @map("photo_public_id") @db.VarChar(500)
+  status         Int       @default(1)
+  isApproved     Boolean   @default(true) @map("is_approved")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("alumni")
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Article {
+  id              Int            @id @default(autoincrement())
+  title           String         @db.VarChar(500)
+  slug            String         @unique @db.VarChar(600)
+  content         String?
+  excerpt         String?        @db.VarChar(1000)
+  author          String         @default("Admin") @db.VarChar(255)
+  tags            String[]       @default([])
+  featuredImage   String?        @map("featured_image") @db.VarChar(500)
+  featuredImagePublicId String? @map("featured_image_public_id") @db.VarChar(500)
+  status          ArticleStatus  @default(DRAFT)
+  views           Int            @default(0)
+  metaTitle       String?        @map("meta_title") @db.VarChar(500)
+  metaDescription String?        @map("meta_description") @db.VarChar(1000)
+  metaKeywords    String[]       @default([]) @map("meta_keywords")
+  publishedAt     DateTime?      @map("published_at") @db.Timestamptz(6)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("articles")
+}
+
+model Event {
+  id              Int            @id @default(autoincrement())
+  title           String         @db.VarChar(500)
+  slug            String         @unique @db.VarChar(600)
+  content         String?
+  excerpt         String?        @db.VarChar(1000)
+  author          String         @default("Admin") @db.VarChar(255)
+  tags            String[]       @default([])
+  featuredImage   String?        @map("featured_image") @db.VarChar(500)
+  featuredImagePublicId String? @map("featured_image_public_id") @db.VarChar(500)
+  eventDate       DateTime       @map("event_date") @db.Timestamptz(6)
+  endDate         DateTime?      @map("end_date") @db.Timestamptz(6)
+  location        String?        @db.VarChar(500)
+  status          ArticleStatus  @default(DRAFT)
+  views           Int            @default(0)
+  metaTitle       String?        @map("meta_title") @db.VarChar(500)
+  metaDescription String?        @map("meta_description") @db.VarChar(1000)
+  metaKeywords    String[]       @default([]) @map("meta_keywords")
+  publishedAt     DateTime?      @map("published_at") @db.Timestamptz(6)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("events")
+}
+
+model Testimonial {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(255)
+  institution   String?  @db.VarChar(255)
+  testimonial   String   @db.VarChar(2000)
+  photo         String?  @db.VarChar(500)
+  photoPublicId String?  @map("photo_public_id") @db.VarChar(500)
+  status        Int      @default(1)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("testimonials")
+}
+
+model SiteSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(255)
+  value     String?  @db.Text
+  category  String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("site_settings")
+}
