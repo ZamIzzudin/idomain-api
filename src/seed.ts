@@ -73,6 +73,7 @@ export const seedSiteSettings = async () => {
     { key: "about_visi", value: null, category: "about" },
     { key: "about_misi", value: null, category: "about" },
     { key: "about_image", value: null, category: "about" },
+    { key: "about_gallery", value: null, category: "about" },
     { key: "contact_email", value: null, category: "contact" },
     { key: "contact_phone", value: null, category: "contact" },
     { key: "contact_address", value: null, category: "contact" },
