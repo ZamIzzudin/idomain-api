@@ -35,7 +35,7 @@ export const articleController = {
   },
 
   getBySlug: async (req: Request, res: Response) => {
-    const { slug } = req.params;
+    const slug = req.params.slug as string;
     const article = await articleService.getBySlug(slug);
 
     if (!article) {
@@ -128,7 +128,7 @@ export const articleController = {
         const result = await uploadToCloudinary(req.file.buffer, "articles");
         payload.featuredImage = result.secure_url;
         payload.featuredImagePublicId = result.public_id;
-      } else if (req.body.removeImage === "true") {
+      } else if (String(req.body.removeImage) === "true") {
         payload.featuredImage = null;
         payload.featuredImagePublicId = null;
       }

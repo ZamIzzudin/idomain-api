@@ -28,6 +28,8 @@ export const updateEventSchema = z.object({
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   metaKeywords: z.array(z.string()).optional(),
+  featuredImage: z.string().nullable().optional(),
+  featuredImagePublicId: z.string().nullable().optional(),
 });
 
 export const eventQuerySchema = z.object({
