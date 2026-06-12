@@ -1,12 +1,18 @@
 import type { Request, Response } from "express";
-import { alumniService } from "./alumni.service";
+import { alumniService, workHistoryService } from "./alumni.service";
+import { stripHiddenFields, stripHiddenFieldsList } from "./alumni.service";
 import {
   createAlumniSchema,
   updateAlumniSchema,
   alumniQuerySchema,
   alumniRegisterSchema,
   alumniLoginSchema,
+  alumniLookupSchema,
+  alumniClaimSchema,
+  createWorkHistorySchema,
+  updateWorkHistorySchema,
 } from "./alumni.schema";
+import { verifyAccessToken } from "../../lib/jwt";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
 import { uploadToCloudinary } from "../../lib/cloudinary";
 
@@ -23,15 +29,33 @@ export const alumniController = {
     }
 
     const query = parsed.data;
-    // Default: only show approved alumni unless requester is admin/superadmin
-    if (!query.approved) {
-      const role = (req as AuthenticatedRequest).user?.role;
+
+    // Extract role from token if present (optional auth)
+    let role: string | undefined;
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const decoded = verifyAccessToken(
+          authHeader.split(" ")[1],
+        ) as any;
+        role = decoded?.role;
+      } catch {}
+    }
+
+    if (!query.approved || query.approved === "all") {
       if (role !== "SUPERADMIN" && role !== "ADMIN") {
         query.approved = "true";
+      } else {
+        delete query.approved;
       }
     }
 
     const result = await alumniService.list(query);
+
+    const isAdmin = role === "SUPERADMIN" || role === "ADMIN";
+    if (!isAdmin) {
+      result.items = stripHiddenFieldsList(result.items);
+    }
 
     return res.json({
       status: 200,
@@ -43,6 +67,11 @@ export const alumniController = {
   filterOptions: async (_req: Request, res: Response) => {
     const options = await alumniService.filterOptions();
     return res.json({ status: 200, message: "success", data: options });
+  },
+
+  stats: async (_req: Request, res: Response) => {
+    const stats = await alumniService.stats();
+    return res.json({ status: 200, message: "success", data: stats });
   },
 
   getById: async (req: Request, res: Response) => {
@@ -61,9 +90,12 @@ export const alumniController = {
       const payload: any = {
         name: req.body.name,
         graduationYear: parseInt(req.body.graduationYear),
-        degree: req.body.degree || null,
+        batch: parseInt(req.body.batch) || null,
+        degreePrefix: req.body.degreePrefix || null,
+        degreeSuffix: req.body.degreeSuffix || null,
         specialization: req.body.specialization || null,
-        institution: req.body.institution || null,
+        province: req.body.province || null,
+        city: req.body.city || null,
         email: req.body.email || null,
         contactNumber: req.body.contactNumber || null,
         password: req.body.password || null,
@@ -108,9 +140,12 @@ export const alumniController = {
 
       if (req.body.name) payload.name = req.body.name;
       if (req.body.graduationYear) payload.graduationYear = parseInt(req.body.graduationYear);
-      if (req.body.degree !== undefined) payload.degree = req.body.degree || null;
+      if (req.body.batch !== undefined) payload.batch = req.body.batch ? parseInt(req.body.batch) : null;
+      if (req.body.degreePrefix !== undefined) payload.degreePrefix = req.body.degreePrefix || null;
+      if (req.body.degreeSuffix !== undefined) payload.degreeSuffix = req.body.degreeSuffix || null;
       if (req.body.specialization !== undefined) payload.specialization = req.body.specialization || null;
-      if (req.body.institution !== undefined) payload.institution = req.body.institution || null;
+      if (req.body.province !== undefined) payload.province = req.body.province || null;
+      if (req.body.city !== undefined) payload.city = req.body.city || null;
       if (req.body.email !== undefined) payload.email = req.body.email || null;
       if (req.body.contactNumber !== undefined) payload.contactNumber = req.body.contactNumber || null;
       if (req.body.password) payload.password = req.body.password;
@@ -165,9 +200,6 @@ export const alumniController = {
 
     try {
       const data = { ...parsed.data };
-      if (data.photo) {
-        delete (data as any).photo;
-      }
       const result = await alumniService.register(data);
       return res.status(201).json({
         status: 201,
@@ -209,6 +241,55 @@ export const alumniController = {
     });
   },
 
+  lookup: async (req: Request, res: Response) => {
+    const parsed = alumniLookupSchema.safeParse(req.query);
+
+    if (!parsed.success) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid query parameters",
+        errors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    try {
+      const results = await alumniService.lookup(parsed.data.name, parsed.data.batch);
+      return res.json({ status: 200, message: "success", data: results });
+    } catch (error: any) {
+      return res.status(400).json({
+        status: 400,
+        message: error.message || "Lookup failed",
+      });
+    }
+  },
+
+  claim: async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const parsed = alumniClaimSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid payload",
+        errors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    try {
+      const result = await alumniService.claim(Number(id), parsed.data);
+      return res.status(200).json({
+        status: 200,
+        message: "success",
+        data: result,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        status: 400,
+        message: error.message || "Failed to claim alumni",
+      });
+    }
+  },
+
   getMe: async (req: AuthenticatedRequest, res: Response) => {
     const alumni = await alumniService.getById(req.user!.id);
 
@@ -227,17 +308,24 @@ export const alumniController = {
 
       if (req.body.name) payload.name = req.body.name;
       if (req.body.graduationYear) payload.graduationYear = parseInt(req.body.graduationYear);
-      if (req.body.degree !== undefined) payload.degree = req.body.degree || null;
+      if (req.body.batch !== undefined) payload.batch = req.body.batch ? parseInt(req.body.batch) : null;
+      if (req.body.degreePrefix !== undefined) payload.degreePrefix = req.body.degreePrefix || null;
+      if (req.body.degreeSuffix !== undefined) payload.degreeSuffix = req.body.degreeSuffix || null;
       if (req.body.specialization !== undefined) payload.specialization = req.body.specialization || null;
-      if (req.body.institution !== undefined) payload.institution = req.body.institution || null;
+      if (req.body.province !== undefined) payload.province = req.body.province || null;
+      if (req.body.city !== undefined) payload.city = req.body.city || null;
       if (req.body.email !== undefined) payload.email = req.body.email || null;
       if (req.body.contactNumber !== undefined) payload.contactNumber = req.body.contactNumber || null;
       if (req.body.password) payload.password = req.body.password;
+      if (req.body.emailVisible !== undefined) payload.emailVisible = req.body.emailVisible === true || req.body.emailVisible === "true";
+      if (req.body.contactNumberVisible !== undefined) payload.contactNumberVisible = req.body.contactNumberVisible === true || req.body.contactNumberVisible === "true";
 
       if (req.file) {
         const result = await uploadToCloudinary(req.file.buffer, "alumni");
         payload.photo = result.secure_url;
         payload.photoPublicId = result.public_id;
+      } else if (req.body.photo) {
+        payload.photo = req.body.photo;
       } else if (req.body.removePhoto === "true") {
         payload.photo = null;
         payload.photoPublicId = null;
@@ -277,6 +365,165 @@ export const alumniController = {
       return res.status(400).json({
         status: 400,
         message: error.message || "Failed to reject alumni",
+      });
+    }
+  },
+
+  importExcel: async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          status: 400,
+          message: "File Excel wajib diupload",
+        });
+      }
+
+      const result = await alumniService.importFromExcel(req.file.buffer);
+
+      return res.json({
+        status: 200,
+        message: `Berhasil mengimport ${result.imported} alumni`,
+        data: result,
+      });
+    } catch (error: any) {
+      console.error("Alumni import error:", error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message || "Failed to import alumni",
+      });
+    }
+  },
+
+  exportExcel: async (_req: AuthenticatedRequest, res: Response) => {
+    try {
+      const buffer = await alumniService.exportToExcel();
+
+      const date = new Date().toISOString().slice(0, 10);
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="alumni_export_${date}.xlsx"`
+      );
+
+      return res.send(buffer);
+    } catch (error: any) {
+      console.error("Alumni export error:", error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message || "Failed to export alumni",
+      });
+    }
+  },
+
+  downloadTemplate: async (_req: AuthenticatedRequest, res: Response) => {
+    try {
+      const XLSX = await import("xlsx");
+      const headerRow = [
+        { "Nama Lengkap": "", "Tahun Lulus": "", "Angkatan": "", "Gelar (Depan)": "", "Gelar (Belakang)": "" }
+      ];
+      const worksheet = XLSX.utils.json_to_sheet(headerRow);
+      worksheet["!cols"] = [
+        { wch: 35 }, // name
+        { wch: 15 }, // graduation_year
+        { wch: 15 }, // batch
+        { wch: 18 }, // degree_prefix
+        { wch: 18 }, // degree_suffix
+      ];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="alumni_import_template.xlsx"'
+      );
+
+      return res.send(buffer);
+    } catch (error: any) {
+      console.error("Template download error:", error);
+      return res.status(500).json({
+        status: 500,
+        message: error.message || "Failed to download template",
+      });
+    }
+  },
+};
+
+export const workHistoryController = {
+  list: async (req: AuthenticatedRequest, res: Response) => {
+    const alumniId = req.user!.id;
+    const workHistories = await workHistoryService.listByAlumni(alumniId);
+    return res.json({ status: 200, message: "success", data: workHistories });
+  },
+
+  listByAlumniId: async (req: Request, res: Response) => {
+    const { alumniId } = req.params;
+    const workHistories = await workHistoryService.listByAlumni(Number(alumniId));
+    return res.json({ status: 200, message: "success", data: workHistories });
+  },
+
+  create: async (req: AuthenticatedRequest, res: Response) => {
+    const parsed = createWorkHistorySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid payload",
+        errors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    try {
+      const alumniId = req.user!.id;
+      const result = await workHistoryService.create(alumniId, parsed.data);
+      return res.status(201).json({ status: 201, message: "success", data: result });
+    } catch (error: any) {
+      return res.status(400).json({
+        status: 400,
+        message: error.message || "Failed to create work history",
+      });
+    }
+  },
+
+  update: async (req: AuthenticatedRequest, res: Response) => {
+    const parsed = updateWorkHistorySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid payload",
+        errors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    try {
+      const alumniId = req.user!.id;
+      const { id } = req.params;
+      const result = await workHistoryService.update(alumniId, Number(id), parsed.data);
+      return res.json({ status: 200, message: "success", data: result });
+    } catch (error: any) {
+      return res.status(400).json({
+        status: 400,
+        message: error.message || "Failed to update work history",
+      });
+    }
+  },
+
+  remove: async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const alumniId = req.user!.id;
+      const { id } = req.params;
+      await workHistoryService.remove(alumniId, Number(id));
+      return res.json({ status: 200, message: "Work history deleted successfully" });
+    } catch (error: any) {
+      return res.status(400).json({
+        status: 400,
+        message: error.message || "Failed to delete work history",
       });
     }
   },

@@ -32,17 +32,40 @@ model Alumni {
   password       String?   @db.VarChar(255)
   contactNumber  String?   @map("contact_number") @db.VarChar(50)
   graduationYear Int       @map("graduation_year")
-  degree         String?   @db.VarChar(255)
+  batch          Int?
+  degreePrefix   String?   @map("degree_prefix") @db.VarChar(255)
+  degreeSuffix   String?   @map("degree_suffix") @db.VarChar(255)
   specialization String?   @db.VarChar(255)
-  institution    String?   @db.VarChar(255)
+  province       String?   @db.VarChar(255)
+  city           String?   @db.VarChar(255)
   photo          String?   @db.VarChar(500)
   photoPublicId  String?   @map("photo_public_id") @db.VarChar(500)
+  emailVisible   Boolean   @default(true) @map("email_visible")
+  contactNumberVisible Boolean @default(true) @map("contact_number_visible")
   status         Int       @default(1)
   isApproved     Boolean   @default(true) @map("is_approved")
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  workHistories  WorkHistory[]
+
   @@map("alumni")
+}
+
+model WorkHistory {
+  id             Int      @id @default(autoincrement())
+  alumniId       Int      @map("alumni_id")
+  institutionName String  @map("institution_name") @db.VarChar(255)
+  startYear      Int      @map("start_year")
+  endYear        Int?     @map("end_year")
+  province       String?  @db.VarChar(255)
+  city           String?  @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  alumni         Alumni   @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+
+  @@map("work_histories")
 }
 
 enum ArticleStatus {
