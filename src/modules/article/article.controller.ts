@@ -60,11 +60,13 @@ export const articleController = {
     try {
       const payload: any = {
         title: req.body.title,
+        slug: req.body.slug || undefined,
         content: req.body.content || undefined,
         excerpt: req.body.excerpt || undefined,
         author: req.body.author || undefined,
         tags: req.body.tags ? JSON.parse(req.body.tags) : undefined,
         status: req.body.status || undefined,
+        publishedAt: req.body.publishedAt || undefined,
         metaTitle: req.body.metaTitle || undefined,
         metaDescription: req.body.metaDescription || undefined,
         metaKeywords: req.body.metaKeywords
@@ -111,12 +113,14 @@ export const articleController = {
       const payload: any = {};
 
       if (req.body.title) payload.title = req.body.title;
+      if (req.body.slug !== undefined) payload.slug = req.body.slug;
       if (req.body.content !== undefined) payload.content = req.body.content;
       if (req.body.excerpt !== undefined) payload.excerpt = req.body.excerpt;
       if (req.body.author !== undefined) payload.author = req.body.author;
       if (req.body.tags !== undefined)
         payload.tags = JSON.parse(req.body.tags);
       if (req.body.status !== undefined) payload.status = req.body.status;
+      if (req.body.publishedAt !== undefined) payload.publishedAt = req.body.publishedAt || null;
       if (req.body.metaTitle !== undefined) payload.metaTitle = req.body.metaTitle;
       if (req.body.metaDescription !== undefined)
         payload.metaDescription = req.body.metaDescription;

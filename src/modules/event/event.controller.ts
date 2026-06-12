@@ -60,6 +60,7 @@ export const eventController = {
     try {
       const payload: any = {
         title: req.body.title,
+        slug: req.body.slug || undefined,
         content: req.body.content || undefined,
         excerpt: req.body.excerpt || undefined,
         author: req.body.author || undefined,
@@ -68,6 +69,7 @@ export const eventController = {
         endDate: req.body.endDate || undefined,
         location: req.body.location || undefined,
         status: req.body.status || undefined,
+        publishedAt: req.body.publishedAt || undefined,
         metaTitle: req.body.metaTitle || undefined,
         metaDescription: req.body.metaDescription || undefined,
         metaKeywords: req.body.metaKeywords
@@ -113,6 +115,7 @@ export const eventController = {
       const payload: any = {};
 
       if (req.body.title) payload.title = req.body.title;
+      if (req.body.slug !== undefined) payload.slug = req.body.slug;
       if (req.body.content !== undefined) payload.content = req.body.content;
       if (req.body.excerpt !== undefined) payload.excerpt = req.body.excerpt;
       if (req.body.author !== undefined) payload.author = req.body.author;
@@ -122,6 +125,7 @@ export const eventController = {
       if (req.body.endDate !== undefined) payload.endDate = req.body.endDate || null;
       if (req.body.location !== undefined) payload.location = req.body.location;
       if (req.body.status !== undefined) payload.status = req.body.status;
+      if (req.body.publishedAt !== undefined) payload.publishedAt = req.body.publishedAt || null;
       if (req.body.metaTitle !== undefined) payload.metaTitle = req.body.metaTitle;
       if (req.body.metaDescription !== undefined)
         payload.metaDescription = req.body.metaDescription;

@@ -43,9 +43,16 @@ export const eventService = {
   getById: (id: number) => eventRepository.findById(id),
 
   create: async (data: CreateEventRequest) => {
-    const slug = await ensureUniqueSlug(generateSlug(data.title));
-    const publishedAt =
-      data.status === "PUBLISHED" ? new Date() : null;
+    const slug = data.slug
+      ? await ensureUniqueSlug(generateSlug(data.slug))
+      : await ensureUniqueSlug(generateSlug(data.title));
+
+    let publishedAt: Date | null = null;
+    if (data.publishedAt) {
+      publishedAt = new Date(data.publishedAt);
+    } else if (data.status === "PUBLISHED") {
+      publishedAt = new Date();
+    }
 
     return eventRepository.create({
       title: data.title,
@@ -77,7 +84,10 @@ export const eventService = {
 
     const updateData: any = { ...data };
 
-    if (data.title && data.title !== existing.title) {
+    // Handle slug update
+    if (data.slug !== undefined) {
+      updateData.slug = await ensureUniqueSlug(generateSlug(data.slug), id);
+    } else if (data.title && data.title !== existing.title) {
       updateData.slug = await ensureUniqueSlug(generateSlug(data.title), id);
     }
 
@@ -89,7 +99,10 @@ export const eventService = {
       updateData.endDate = data.endDate ? new Date(data.endDate) : null;
     }
 
-    if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
+    // Handle publishedAt
+    if (data.publishedAt !== undefined) {
+      updateData.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null;
+    } else if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
       updateData.publishedAt = new Date();
     }
 

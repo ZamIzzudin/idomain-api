@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const createEventSchema = z.object({
   title: z.string().min(1),
+  slug: z.string().optional(),
   content: z.string().optional(),
   excerpt: z.string().optional(),
   author: z.string().optional(),
@@ -10,6 +11,7 @@ export const createEventSchema = z.object({
   endDate: z.string().optional(),
   location: z.string().optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+  publishedAt: z.string().optional(),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   metaKeywords: z.array(z.string()).optional(),
@@ -17,6 +19,7 @@ export const createEventSchema = z.object({
 
 export const updateEventSchema = z.object({
   title: z.string().min(1).optional(),
+  slug: z.string().optional(),
   content: z.string().optional(),
   excerpt: z.string().optional(),
   author: z.string().optional(),
@@ -25,6 +28,7 @@ export const updateEventSchema = z.object({
   endDate: z.string().optional(),
   location: z.string().optional(),
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+  publishedAt: z.string().nullable().optional(),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   metaKeywords: z.array(z.string()).optional(),

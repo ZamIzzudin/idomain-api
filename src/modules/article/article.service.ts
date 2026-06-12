@@ -43,9 +43,16 @@ export const articleService = {
   getById: (id: number) => articleRepository.findById(id),
 
   create: async (data: CreateArticleRequest) => {
-    const slug = await ensureUniqueSlug(generateSlug(data.title));
-    const publishedAt =
-      data.status === "PUBLISHED" ? new Date() : null;
+    const slug = data.slug
+      ? await ensureUniqueSlug(generateSlug(data.slug))
+      : await ensureUniqueSlug(generateSlug(data.title));
+
+    let publishedAt: Date | null = null;
+    if (data.publishedAt) {
+      publishedAt = new Date(data.publishedAt);
+    } else if (data.status === "PUBLISHED") {
+      publishedAt = new Date();
+    }
 
     return articleRepository.create({
       title: data.title,
@@ -75,16 +82,17 @@ export const articleService = {
 
     const updateData: any = { ...data };
 
-    // Regenerate slug if title changes
-    if (data.title && data.title !== existing.title) {
-      updateData.slug = await ensureUniqueSlug(
-        generateSlug(data.title),
-        id
-      );
+    // Handle slug update
+    if (data.slug !== undefined) {
+      updateData.slug = await ensureUniqueSlug(generateSlug(data.slug), id);
+    } else if (data.title && data.title !== existing.title) {
+      updateData.slug = await ensureUniqueSlug(generateSlug(data.title), id);
     }
 
-    // Set publishedAt when status changes to PUBLISHED
-    if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
+    // Handle publishedAt
+    if (data.publishedAt !== undefined) {
+      updateData.publishedAt = data.publishedAt ? new Date(data.publishedAt) : null;
+    } else if (data.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
       updateData.publishedAt = new Date();
     }
 

@@ -23,8 +23,8 @@ uploadRouter.post("/image", isAuthenticated, async (req, res) => {
     const ext = mimeType.split("/")[1] || "png";
     const buffer = Buffer.from(base64Data, "base64");
 
-    if (buffer.length > 10 * 1024 * 1024) {
-      return res.status(400).json({ status: 400, message: "Image size must be under 10MB" });
+    if (buffer.length > 1 * 1024 * 1024) {
+      return res.status(400).json({ status: 400, message: "Ukuran gambar tidak boleh melebihi 1 MB" });
     }
 
     const result = await uploadToCloudinary(buffer, "editor", "image");
