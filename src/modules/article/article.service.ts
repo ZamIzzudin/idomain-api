@@ -61,6 +61,8 @@ export const articleService = {
       excerpt: data.excerpt,
       author: data.author,
       tags: data.tags,
+      featuredImage: (data as any).featuredImage,
+      featuredImagePublicId: (data as any).featuredImagePublicId,
       status: data.status as any,
       metaTitle: data.metaTitle,
       metaDescription: data.metaDescription,

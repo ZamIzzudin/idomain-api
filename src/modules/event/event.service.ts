@@ -64,6 +64,8 @@ export const eventService = {
       eventDate: new Date(data.eventDate),
       endDate: data.endDate ? new Date(data.endDate) : null,
       location: data.location,
+      featuredImage: (data as any).featuredImage,
+      featuredImagePublicId: (data as any).featuredImagePublicId,
       status: data.status as any,
       metaTitle: data.metaTitle,
       metaDescription: data.metaDescription,
