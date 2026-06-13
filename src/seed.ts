@@ -85,6 +85,7 @@ export const seedSiteSettings = async () => {
     { key: "social_youtube", value: null, category: "social" },
     { key: "social_linkedin", value: null, category: "social" },
     { key: "social_twitter", value: null, category: "social" },
+    { key: "social_links", value: null, category: "social" },
     { key: "cta_title", value: null, category: "cta" },
     { key: "cta_description", value: null, category: "cta" },
     { key: "cta_button_text", value: null, category: "cta" },
