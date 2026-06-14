@@ -10,6 +10,10 @@ import { eventRouter } from "./modules/event/event.route";
 import { testimonialRouter } from "./modules/testimonial/testimonial.route";
 import { uploadRouter } from "./modules/upload/upload.route";
 import { settingRouter } from "./modules/setting/setting.route";
+import { careerRouter } from "./modules/career/career.route";
+import { categoryRouter } from "./modules/category/category.route";
+import { notificationRouter } from "./modules/notification/notification.route";
+import { pushRouter } from "./modules/push/push.route";
 import { prisma } from "./lib/prisma";
 import { seedGenesisAccount, seedSiteSettings } from "./seed";
 
@@ -55,6 +59,10 @@ app.use("/api/v1/events", eventRouter);
 app.use("/api/v1/testimonials", testimonialRouter);
 app.use("/api/v1/upload", uploadRouter);
 app.use("/api/v1/settings", settingRouter);
+app.use("/api/v1/careers", careerRouter);
+app.use("/api/v1/categories", categoryRouter);
+app.use("/api/v1/notifications", notificationRouter);
+app.use("/api/v1/push", pushRouter);
 
 // 404
 app.use((_req, res) => {

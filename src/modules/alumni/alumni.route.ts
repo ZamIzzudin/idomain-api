@@ -50,6 +50,10 @@ alumniRouter.put(
   alumniController.updateMe
 );
 
+// Protected - Alumni notification preferences
+alumniRouter.get("/me/preferences", isAuthenticated, alumniController.getPreferences);
+alumniRouter.put("/me/preferences", isAuthenticated, alumniController.updatePreferences);
+
 // Protected - Work history (for logged-in alumni managing their own)
 alumniRouter.get("/me/work-histories", isAuthenticated, workHistoryController.list);
 alumniRouter.post("/me/work-histories", isAuthenticated, workHistoryController.create);

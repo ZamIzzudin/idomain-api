@@ -17,6 +17,8 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  approvedCareers Career[]
+
   @@map("users")
 }
 
@@ -26,44 +28,50 @@ enum UserRole {
 }
 
 model Alumni {
-  id             Int       @id @default(autoincrement())
-  name           String    @db.VarChar(255)
-  email          String?   @db.VarChar(255)
-  password       String?   @db.VarChar(255)
-  contactNumber  String?   @map("contact_number") @db.VarChar(50)
-  graduationYear Int       @map("graduation_year")
-  batch          Int?
-  degreePrefix   String?   @map("degree_prefix") @db.VarChar(255)
-  degreeSuffix   String?   @map("degree_suffix") @db.VarChar(255)
-  specialization String?   @db.VarChar(255)
-  province       String?   @db.VarChar(255)
-  city           String?   @db.VarChar(255)
-  photo          String?   @db.VarChar(500)
-  photoPublicId  String?   @map("photo_public_id") @db.VarChar(500)
-  emailVisible   Boolean   @default(true) @map("email_visible")
-  contactNumberVisible Boolean @default(true) @map("contact_number_visible")
-  status         Int       @default(1)
-  isApproved     Boolean   @default(true) @map("is_approved")
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                   Int      @id @default(autoincrement())
+  name                 String   @db.VarChar(255)
+  email                String?  @db.VarChar(255)
+  password             String?  @db.VarChar(255)
+  contactNumber        String?  @map("contact_number") @db.VarChar(50)
+  graduationYear       Int      @map("graduation_year")
+  batch                Int?
+  degreePrefix         String?  @map("degree_prefix") @db.VarChar(255)
+  degreeSuffix         String?  @map("degree_suffix") @db.VarChar(255)
+  specialization       String?  @db.VarChar(255)
+  province             String?  @db.VarChar(255)
+  city                 String?  @db.VarChar(255)
+  photo                String?  @db.VarChar(500)
+  photoPublicId        String?  @map("photo_public_id") @db.VarChar(500)
+  emailVisible         Boolean  @default(true) @map("email_visible")
+  contactNumberVisible Boolean  @default(true) @map("contact_number_visible")
+  status               Int      @default(1)
+  isApproved           Boolean  @default(true) @map("is_approved")
+  notifEnabled         Boolean  @default(false) @map("notif_enabled")
+  notifReceiveAll      Boolean  @default(false) @map("notif_receive_all")
+  preferredCategories  String[] @default([]) @map("preferred_categories")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  workHistories  WorkHistory[]
+  workHistories     WorkHistory[]
+  careers           Career[]
+  pushSubscriptions PushSubscription[]
+  notifications     Notification[]
 
   @@map("alumni")
 }
 
 model WorkHistory {
-  id             Int      @id @default(autoincrement())
-  alumniId       Int      @map("alumni_id")
-  institutionName String  @map("institution_name") @db.VarChar(255)
-  startYear      Int      @map("start_year")
-  endYear        Int?     @map("end_year")
-  province       String?  @db.VarChar(255)
-  city           String?  @db.VarChar(255)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              Int      @id @default(autoincrement())
+  alumniId        Int      @map("alumni_id")
+  institutionName String   @map("institution_name") @db.VarChar(255)
+  startYear       Int      @map("start_year")
+  endYear         Int?     @map("end_year")
+  province        String?  @db.VarChar(255)
+  city            String?  @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  alumni         Alumni   @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  alumni Alumni @relation(fields: [alumniId], references: [id], onDelete: Cascade)
 
   @@map("work_histories")
 }
@@ -75,48 +83,48 @@ enum ArticleStatus {
 }
 
 model Article {
-  id              Int            @id @default(autoincrement())
-  title           String         @db.VarChar(500)
-  slug            String         @unique @db.VarChar(600)
-  content         String?
-  excerpt         String?        @db.VarChar(1000)
-  author          String         @default("Admin") @db.VarChar(255)
-  tags            String[]       @default([])
-  featuredImage   String?        @map("featured_image") @db.VarChar(500)
-  featuredImagePublicId String? @map("featured_image_public_id") @db.VarChar(500)
-  status          ArticleStatus  @default(DRAFT)
-  views           Int            @default(0)
-  metaTitle       String?        @map("meta_title") @db.VarChar(500)
-  metaDescription String?        @map("meta_description") @db.VarChar(1000)
-  metaKeywords    String[]       @default([]) @map("meta_keywords")
-  publishedAt     DateTime?      @map("published_at") @db.Timestamptz(6)
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                    Int           @id @default(autoincrement())
+  title                 String        @db.VarChar(500)
+  slug                  String        @unique @db.VarChar(600)
+  content               String?
+  excerpt               String?       @db.VarChar(1000)
+  author                String        @default("Admin") @db.VarChar(255)
+  tags                  String[]      @default([])
+  featuredImage         String?       @map("featured_image") @db.VarChar(500)
+  featuredImagePublicId String?       @map("featured_image_public_id") @db.VarChar(500)
+  status                ArticleStatus @default(DRAFT)
+  views                 Int           @default(0)
+  metaTitle             String?       @map("meta_title") @db.VarChar(500)
+  metaDescription       String?       @map("meta_description") @db.VarChar(1000)
+  metaKeywords          String[]      @default([]) @map("meta_keywords")
+  publishedAt           DateTime?     @map("published_at") @db.Timestamptz(6)
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("articles")
 }
 
 model Event {
-  id              Int            @id @default(autoincrement())
-  title           String         @db.VarChar(500)
-  slug            String         @unique @db.VarChar(600)
-  content         String?
-  excerpt         String?        @db.VarChar(1000)
-  author          String         @default("Admin") @db.VarChar(255)
-  tags            String[]       @default([])
-  featuredImage   String?        @map("featured_image") @db.VarChar(500)
-  featuredImagePublicId String? @map("featured_image_public_id") @db.VarChar(500)
-  eventDate       DateTime       @map("event_date") @db.Timestamptz(6)
-  endDate         DateTime?      @map("end_date") @db.Timestamptz(6)
-  location        String?        @db.VarChar(500)
-  status          ArticleStatus  @default(DRAFT)
-  views           Int            @default(0)
-  metaTitle       String?        @map("meta_title") @db.VarChar(500)
-  metaDescription String?        @map("meta_description") @db.VarChar(1000)
-  metaKeywords    String[]       @default([]) @map("meta_keywords")
-  publishedAt     DateTime?      @map("published_at") @db.Timestamptz(6)
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                    Int           @id @default(autoincrement())
+  title                 String        @db.VarChar(500)
+  slug                  String        @unique @db.VarChar(600)
+  content               String?
+  excerpt               String?       @db.VarChar(1000)
+  author                String        @default("Admin") @db.VarChar(255)
+  tags                  String[]      @default([])
+  featuredImage         String?       @map("featured_image") @db.VarChar(500)
+  featuredImagePublicId String?       @map("featured_image_public_id") @db.VarChar(500)
+  eventDate             DateTime      @map("event_date") @db.Timestamptz(6)
+  endDate               DateTime?     @map("end_date") @db.Timestamptz(6)
+  location              String?       @db.VarChar(500)
+  status                ArticleStatus @default(DRAFT)
+  views                 Int           @default(0)
+  metaTitle             String?       @map("meta_title") @db.VarChar(500)
+  metaDescription       String?       @map("meta_description") @db.VarChar(1000)
+  metaKeywords          String[]      @default([]) @map("meta_keywords")
+  publishedAt           DateTime?     @map("published_at") @db.Timestamptz(6)
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("events")
 }
@@ -144,4 +152,102 @@ model SiteSetting {
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("site_settings")
+}
+
+// ===================== Career Module =====================
+
+enum CareerCategoryType {
+  KLINIS
+  NON_KLINIS
+}
+
+model CareerCategory {
+  id        Int                @id @default(autoincrement())
+  name      String             @unique @db.VarChar(255)
+  slug      String             @unique @db.VarChar(300)
+  type      CareerCategoryType @default(KLINIS)
+  sortOrder Int                @default(0) @map("sort_order")
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  careers Career[]
+
+  @@map("career_categories")
+}
+
+enum CareerStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  CLOSED
+  EXPIRED
+}
+
+model Career {
+  id               Int          @id @default(autoincrement())
+  title            String       @db.VarChar(500)
+  slug             String       @unique @db.VarChar(600)
+  institutionName  String       @map("institution_name") @db.VarChar(255)
+  logo             String?      @db.VarChar(500)
+  logoPublicId     String?      @map("logo_public_id") @db.VarChar(500)
+  position         String       @db.VarChar(255)
+  province         String?      @db.VarChar(255)
+  city             String?      @db.VarChar(255)
+  jobType          String       @map("job_type") @db.VarChar(50)
+  description      String?
+  requirements     String?
+  deadline         DateTime?    @db.Timestamptz(6)
+  recruitmentEmail String?      @map("recruitment_email") @db.VarChar(255)
+  recruitmentUrl   String?      @map("recruitment_url") @db.VarChar(500)
+  contactPerson    String?      @map("contact_person") @db.VarChar(255)
+  contactPhone     String?      @map("contact_phone") @db.VarChar(50)
+  categoryId       Int          @map("category_id")
+  status           CareerStatus @default(DRAFT)
+  views            Int          @default(0)
+  publishedAt      DateTime?    @map("published_at") @db.Timestamptz(6)
+  expiredAt        DateTime?    @map("expired_at") @db.Timestamptz(6)
+  authorId         Int          @map("author_id")
+  approvedById     Int?         @map("approved_by_id")
+  approvedAt       DateTime?    @map("approved_at") @db.Timestamptz(6)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  category      CareerCategory @relation(fields: [categoryId], references: [id])
+  author        Alumni         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  approvedBy    User?          @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+  notifications Notification[]
+
+  @@map("careers")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  alumniId  Int      @map("alumni_id")
+  endpoint  String   @db.Text
+  p256dh    String   @db.Text
+  auth      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  alumni Alumni @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+
+  @@unique([alumniId, endpoint])
+  @@map("push_subscriptions")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  alumniId  Int      @map("alumni_id")
+  type      String   @db.VarChar(50)
+  title     String   @db.VarChar(255)
+  body      String?  @db.Text
+  url       String?  @db.VarChar(600)
+  isRead    Boolean  @default(false) @map("is_read")
+  careerId  Int?     @map("career_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  alumni Alumni  @relation(fields: [alumniId], references: [id], onDelete: Cascade)
+  career Career? @relation(fields: [careerId], references: [id], onDelete: SetNull)
+
+  @@index([alumniId, isRead])
+  @@map("notifications")
 }

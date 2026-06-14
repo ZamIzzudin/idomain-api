@@ -161,12 +161,13 @@ export const alumniService = {
     };
   },
 
-  filterOptions: () =>
+  filterOptions: (province?: string) =>
     Promise.all([
       alumniRepository.findDistinctYears(),
       alumniRepository.findDistinctSpecializations(),
       alumniRepository.findDistinctProvinces(),
-    ]).then(([years, specializations, provinces]) => ({ years, specializations, provinces })),
+      alumniRepository.findDistinctCities(province),
+    ]).then(([years, specializations, provinces, cities]) => ({ years, specializations, provinces, cities })),
 
   stats: () => alumniRepository.getStats(),
 

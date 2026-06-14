@@ -3,6 +3,91 @@ import bcrypt from "bcrypt";
 import { prisma } from "./lib/prisma";
 import { config } from "./config";
 
+const klinisCategories = [
+  "Umum",
+  "Anak",
+  "Anestesiologi",
+  "Bedah Umum",
+  "Bedah Saraf",
+  "Bedah Orthopedi",
+  "Bedah Plastik",
+  "Bedah Toraks dan Kardiovaskular",
+  "Bedah Urologi",
+  "Bedah Vaskular",
+  "Dermatologi dan Venereologi",
+  "Forensik",
+  "Gigi dan Mulut",
+  "Jantung dan Pembuluh Darah",
+  "Kedokteran Fisik dan Rehabilitasi",
+  "Kedokteran Jiwa",
+  "Kedokteran Okupasi",
+  "Kedokteran Olahraga",
+  "Kulit dan Kelamin",
+  "Mata",
+  "Neurologi",
+  "Obstetri dan Ginekologi",
+  "Onkologi Radiasi",
+  "Orthopedi",
+  "Otorhinolaringologi",
+  "Patologi Anatomi",
+  "Patologi Klinik",
+  "Pediatri",
+  "Penyakit Dalam",
+  "Radiologi",
+  "Reproduksi Manusia",
+  "Spesialis Bedah Syaraf",
+  "Spesialis Gastroenterologi",
+  "Spesialis Hematologi",
+  "Spesialis Nefrologi",
+  "Spesialis Paru",
+  "Spesialis Rheumatologi",
+  "THT-KL",
+  "Akupuntur",
+  "Alergi dan Imunologi",
+  "Andrologi",
+  "Bedah Digestif",
+  "Bedah Onkologi",
+  "Bedah Plastik Rekonstruksi",
+  "Bedah Rekonstruksi dan Estetik",
+  "Endokrinologi",
+  "Endodonti",
+  "Farmakologi Klinik",
+  "Gastroenterologi Hepatologi",
+  "Geriatri",
+  "Hematologi Onkologi",
+  "Infeksi",
+  "Kedokteran Aerospace",
+  "Kedokteran Gigi Anak",
+  "Kedokteran Gigi Pencegahan",
+  "Kedokteran Kelautan",
+  "Kedokteran Penerbangan",
+  "Mikrobiologi Klinik",
+  "Nefrologi Anak",
+  "Neurologi Anak",
+  "Onkologi Anak",
+  "Onkologi Medik",
+  "Ortodonti",
+  "Periodonti",
+  "Prosthodonti",
+  "Pulmonologi",
+  "Radioterapi",
+  "Rehabilitasi Medik",
+  "Tumbuh Kembang",
+];
+
+const nonKlinisCategories = [
+  "Non-Klinis",
+  "Penelitian",
+  "Pendidik/Pengajar",
+];
+
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export const seedGenesisAccount = async () => {
   const existing = await prisma.user.findFirst();
 
@@ -103,10 +188,41 @@ export const seedSiteSettings = async () => {
   console.log("Site settings seeded.");
 };
 
+export const seedCareerCategories = async () => {
+  const existing = await prisma.careerCategory.count();
+  if (existing > 0) {
+    console.log("Career categories already exist, skipping seed.");
+    return;
+  }
+
+  const klinisData = klinisCategories.map((name, index) => ({
+    name,
+    slug: toSlug(name),
+    type: "KLINIS" as const,
+    sortOrder: index,
+  }));
+
+  const nonKlinisData = nonKlinisCategories.map((name, index) => ({
+    name,
+    slug: toSlug(name),
+    type: "NON_KLINIS" as const,
+    sortOrder: index,
+  }));
+
+  await prisma.careerCategory.createMany({
+    data: [...klinisData, ...nonKlinisData],
+  });
+
+  console.log(
+    `Seeded ${klinisData.length + nonKlinisData.length} career categories.`
+  );
+};
+
 export const runSeed = async () => {
   await prisma.$connect();
   await seedGenesisAccount();
   await seedSiteSettings();
+  await seedCareerCategories();
   await prisma.$disconnect();
 };
 

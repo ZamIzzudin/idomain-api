@@ -29,7 +29,11 @@ uploadRouter.post("/image", isAuthenticated, async (req, res) => {
 
     const result = await uploadToCloudinary(buffer, "editor", "image");
 
-    return res.json({ status: 200, message: "success", data: { url: result.secure_url } });
+    return res.json({
+      status: 200,
+      message: "success",
+      data: { url: result.secure_url, publicId: result.public_id },
+    });
   } catch (error: any) {
     console.error("Image upload error:", error);
     return res.status(500).json({ status: 500, message: error.message || "Failed to upload image" });

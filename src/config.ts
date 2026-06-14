@@ -27,4 +27,9 @@ export const config = {
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY ?? "",
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET ?? "",
   cloudinaryUploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET ?? "idomain_unsigned",
+
+  // Web Push (VAPID)
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
+  vapidSubject: process.env.VAPID_SUBJECT ?? "mailto:admin@idomain.org",
 };

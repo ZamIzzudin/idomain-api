@@ -148,6 +148,9 @@ export const alumniRepository = {
       isApproved?: boolean;
       emailVisible?: boolean;
       contactNumberVisible?: boolean;
+      notifEnabled?: boolean;
+      notifReceiveAll?: boolean;
+      preferredCategories?: string[];
     }
   ) => prisma.alumni.update({ where: { id }, data }),
 
@@ -182,6 +185,20 @@ export const alumniRepository = {
       orderBy: { province: "asc" },
     });
     return results.map((r) => r.province).filter(Boolean) as string[];
+  },
+
+  findDistinctCities: async (province?: string) => {
+    const where: any = { status: 1, isApproved: true, city: { not: null } };
+    if (province) {
+      where.province = { contains: province, mode: "insensitive" };
+    }
+    const results = await prisma.alumni.findMany({
+      where,
+      select: { city: true },
+      distinct: ["city"],
+      orderBy: { city: "asc" },
+    });
+    return results.map((r) => r.city).filter(Boolean) as string[];
   },
 
   getStats: async () => {

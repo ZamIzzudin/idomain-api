@@ -42,6 +42,9 @@ export const updateAlumniSchema = z.object({
   isApproved: z.boolean().optional(),
   emailVisible: z.boolean().optional(),
   contactNumberVisible: z.boolean().optional(),
+  notifEnabled: z.boolean().optional(),
+  notifReceiveAll: z.boolean().optional(),
+  preferredCategories: z.array(z.string()).optional(),
 });
 
 export const alumniQuerySchema = z.object({

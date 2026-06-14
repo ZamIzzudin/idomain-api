@@ -64,8 +64,9 @@ export const alumniController = {
     });
   },
 
-  filterOptions: async (_req: Request, res: Response) => {
-    const options = await alumniService.filterOptions();
+  filterOptions: async (req: Request, res: Response) => {
+    const province = req.query.province as string | undefined;
+    const options = await alumniService.filterOptions(province);
     return res.json({ status: 200, message: "success", data: options });
   },
 
@@ -451,6 +452,54 @@ export const alumniController = {
       return res.status(500).json({
         status: 500,
         message: error.message || "Failed to download template",
+      });
+    }
+  },
+
+  getPreferences: async (req: AuthenticatedRequest, res: Response) => {
+    const alumni = await alumniService.getById(req.user!.id);
+
+    if (!alumni) {
+      return res.status(404).json({ status: 404, message: "Alumni not found" });
+    }
+
+    return res.json({
+      status: 200,
+      message: "success",
+      data: {
+        notifEnabled: (alumni as any).notifEnabled,
+        notifReceiveAll: (alumni as any).notifReceiveAll,
+        preferredCategories: (alumni as any).preferredCategories,
+      },
+    });
+  },
+
+  updatePreferences: async (req: AuthenticatedRequest, res: Response) => {
+    const id = req.user!.id;
+
+    try {
+      const payload: any = {};
+
+      if (req.body.notifEnabled !== undefined)
+        payload.notifEnabled =
+          req.body.notifEnabled === true || req.body.notifEnabled === "true";
+      if (req.body.notifReceiveAll !== undefined)
+        payload.notifReceiveAll =
+          req.body.notifReceiveAll === true ||
+          req.body.notifReceiveAll === "true";
+      if (req.body.preferredCategories !== undefined) {
+        payload.preferredCategories = Array.isArray(req.body.preferredCategories)
+          ? req.body.preferredCategories
+          : JSON.parse(req.body.preferredCategories || "[]");
+      }
+
+      const alumni = await alumniService.update(id, payload);
+
+      return res.json({ status: 200, message: "success", data: alumni });
+    } catch (error: any) {
+      return res.status(400).json({
+        status: 400,
+        message: error.message || "Failed to update preferences",
       });
     }
   },
