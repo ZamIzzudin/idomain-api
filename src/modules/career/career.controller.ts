@@ -8,6 +8,52 @@ import {
 import type { AuthenticatedRequest } from "../../middlewares/auth";
 import { uploadToCloudinary } from "../../lib/cloudinary";
 import { pushService } from "../push/push.service";
+import { prisma } from "../../lib/prisma";
+
+// Resolve the correct author info based on authorType
+// For ADMIN authors, the authorId points to a User, not an Alumni
+async function resolveAuthor(career: any) {
+  if (!career) return career;
+  if (career.authorType === "ADMIN") {
+    const admin = await prisma.user.findUnique({
+      where: { id: career.authorId },
+      select: { id: true, displayName: true },
+    });
+    return {
+      ...career,
+      author: admin
+        ? { id: admin.id, name: admin.displayName || "Admin", photo: null }
+        : career.author,
+    };
+  }
+  return career;
+}
+
+async function resolveAuthors(careers: any[]) {
+  // Batch resolve admin authors
+  const adminIds = careers
+    .filter((c) => c.authorType === "ADMIN")
+    .map((c) => c.authorId)
+    .filter((v, i, a) => a.indexOf(v) === i); // unique
+
+  let adminMap: Record<number, { name: string; photo: null }> = {};
+  if (adminIds.length > 0) {
+    const admins = await prisma.user.findMany({
+      where: { id: { in: adminIds } },
+      select: { id: true, displayName: true },
+    });
+    adminMap = Object.fromEntries(
+      admins.map((a) => [a.id, { name: a.displayName || "Admin", photo: null }])
+    );
+  }
+
+  return careers.map((c) => {
+    if (c.authorType === "ADMIN" && adminMap[c.authorId]) {
+      return { ...c, author: { id: c.authorId, ...adminMap[c.authorId] } };
+    }
+    return c;
+  });
+}
 
 export const careerController = {
   list: async (req: Request, res: Response) => {
@@ -22,6 +68,7 @@ export const careerController = {
     }
 
     const result = await careerService.list(parsed.data);
+    result.items = await resolveAuthors(result.items);
 
     return res.json({
       status: 200,
@@ -43,7 +90,8 @@ export const careerController = {
       return res.status(404).json({ status: 404, message: "Career not found" });
     }
 
-    return res.json({ status: 200, message: "success", data: career });
+    const resolved = await resolveAuthor(career);
+    return res.json({ status: 200, message: "success", data: resolved });
   },
 
   getById: async (req: Request, res: Response) => {
@@ -54,7 +102,8 @@ export const careerController = {
       return res.status(404).json({ status: 404, message: "Career not found" });
     }
 
-    return res.json({ status: 200, message: "success", data: career });
+    const resolved = await resolveAuthor(career);
+    return res.json({ status: 200, message: "success", data: resolved });
   },
 
   create: async (req: AuthenticatedRequest, res: Response) => {
@@ -95,8 +144,10 @@ export const careerController = {
 
       payload.authorId = req.user!.id;
 
-      // Admin can set status directly, alumni submissions default to PENDING_REVIEW
+      // Determine author type based on user role
       const isAdmin = req.user!.role === "ADMIN" || req.user!.role === "SUPERADMIN";
+      payload.authorType = isAdmin ? "ADMIN" : "ALUMNI";
+
       if (!isAdmin) {
         payload.status = "PENDING_REVIEW";
       }

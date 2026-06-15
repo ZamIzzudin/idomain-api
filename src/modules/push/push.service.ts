@@ -30,7 +30,7 @@ export const pushService = {
     }
 
     const payload = {
-      title: "Test Notifikasi IDOMAIN",
+      title: "Test Notifikasi iDomain",
       body: "Notifikasi push berhasil! Anda akan menerima pemberitahuan lowongan baru.",
       url: "/career",
     };
@@ -43,7 +43,7 @@ export const pushService = {
             p256dh: sub.p256dh,
             auth: sub.auth,
           },
-          payload
+          payload,
         );
       } catch (error) {
         console.error("Push send error:", error);
@@ -61,14 +61,16 @@ export const pushService = {
     category: { name: string };
   }) => {
     // 1. Create in-app notifications for matching alumni
-    const notifiedCount = await notificationService.createForMatchingAlumni(career);
+    const notifiedCount =
+      await notificationService.createForMatchingAlumni(career);
 
     // 2. Send push notifications to matching alumni with subscriptions
     const subscriptions = await pushRepository.findByAlumniIds(
-      await getMatchingAlumniIds(career)
+      await getMatchingAlumniIds(career),
     );
 
-    if (subscriptions.length === 0) return { inAppCount: notifiedCount, pushCount: 0 };
+    if (subscriptions.length === 0)
+      return { inAppCount: notifiedCount, pushCount: 0 };
 
     const categoryName = career.category.name;
     const payload = {
@@ -86,12 +88,15 @@ export const pushService = {
             p256dh: sub.p256dh,
             auth: sub.auth,
           },
-          payload
+          payload,
         );
         pushCount++;
       } catch (error: any) {
         // If subscription is invalid/expired, it will be cleaned up naturally
-        console.error(`Push failed for alumni ${sub.alumniId}:`, error?.statusCode || error?.message);
+        console.error(
+          `Push failed for alumni ${sub.alumniId}:`,
+          error?.statusCode || error?.message,
+        );
       }
     }
 

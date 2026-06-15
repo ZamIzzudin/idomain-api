@@ -75,11 +75,7 @@ const klinisCategories = [
   "Tumbuh Kembang",
 ];
 
-const nonKlinisCategories = [
-  "Non-Klinis",
-  "Penelitian",
-  "Pendidik/Pengajar",
-];
+const nonKlinisCategories = ["Non-Klinis", "Penelitian", "Pendidik/Pengajar"];
 
 function toSlug(name: string): string {
   return name
@@ -145,7 +141,7 @@ export const seedSiteSettings = async () => {
 
   // Seed default settings if they don't exist
   const defaults = [
-    { key: "site_name", value: "IDOMAIN", category: "general" },
+    { key: "site_name", value: "iDomain", category: "general" },
     {
       key: "site_description",
       value: "Ikatan Dokter Muslim Alumni UIN",
@@ -214,7 +210,7 @@ export const seedCareerCategories = async () => {
   });
 
   console.log(
-    `Seeded ${klinisData.length + nonKlinisData.length} career categories.`
+    `Seeded ${klinisData.length + nonKlinisData.length} career categories.`,
   );
 };
 

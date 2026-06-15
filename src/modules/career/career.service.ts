@@ -60,7 +60,7 @@ export const careerService = {
 
   getById: (id: number) => careerRepository.findById(id),
 
-  create: async (data: CreateCareerRequest & { authorId: number }) => {
+  create: async (data: CreateCareerRequest & { authorId: number; authorType?: string }) => {
     const slug = data.slug
       ? await ensureUniqueSlug(generateSlug(data.slug))
       : await ensureUniqueSlug(generateSlug(data.title));
@@ -92,6 +92,7 @@ export const careerService = {
       categoryId: data.categoryId,
       status: data.status as any,
       authorId: data.authorId,
+      authorType: (data as any).authorType || "ALUMNI",
       publishedAt,
     });
   },

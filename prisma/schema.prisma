@@ -17,7 +17,7 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  approvedCareers Career[]
+  approvedCareers  Career[]
 
   @@map("users")
 }
@@ -207,14 +207,15 @@ model Career {
   publishedAt      DateTime?    @map("published_at") @db.Timestamptz(6)
   expiredAt        DateTime?    @map("expired_at") @db.Timestamptz(6)
   authorId         Int          @map("author_id")
+  authorType       String       @default("ALUMNI") @map("author_type") @db.VarChar(10)
   approvedById     Int?         @map("approved_by_id")
   approvedAt       DateTime?    @map("approved_at") @db.Timestamptz(6)
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  category      CareerCategory @relation(fields: [categoryId], references: [id])
-  author        Alumni         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  approvedBy    User?          @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+  category       CareerCategory @relation(fields: [categoryId], references: [id])
+  author         Alumni         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  approvedBy     User?          @relation(fields: [approvedById], references: [id], onDelete: SetNull)
   notifications Notification[]
 
   @@map("careers")

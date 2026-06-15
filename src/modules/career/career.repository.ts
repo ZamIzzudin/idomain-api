@@ -141,6 +141,7 @@ export const careerRepository = {
     categoryId: number;
     status?: "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "CLOSED" | "EXPIRED";
     authorId: number;
+    authorType?: string;
     publishedAt?: Date | null;
   }) =>
     prisma.career.create({

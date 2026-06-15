@@ -25,7 +25,7 @@ app.use(
   cors({
     origin: config.corsOrigin,
     credentials: true,
-  })
+  }),
 );
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
@@ -47,7 +47,7 @@ app.get("/health", (_req, res) => {
 
 app.get("/", (_req, res) => {
   res.json({
-    message: "Welcome to IDOMAIN API",
+    message: "Welcome to iDomain API",
   });
 });
 
