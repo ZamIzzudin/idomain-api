@@ -145,7 +145,7 @@ export const careerController = {
       payload.authorId = req.user!.id;
 
       // Determine author type based on user role
-      const isAdmin = req.user!.role === "ADMIN" || req.user!.role === "SUPERADMIN";
+      const isAdmin = req.user!.role === "admin" || req.user!.role === "superadmin";
       payload.authorType = isAdmin ? "ADMIN" : "ALUMNI";
 
       if (!isAdmin) {

@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import { config } from "./config";
 import { authRouter } from "./modules/auth/auth.route";
+import { roleRouter } from "./modules/role/role.route";
 import { alumniRouter } from "./modules/alumni/alumni.route";
 import { articleRouter } from "./modules/article/article.route";
 import { eventRouter } from "./modules/event/event.route";
@@ -53,6 +54,7 @@ app.get("/", (_req, res) => {
 
 // Routes
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/roles", roleRouter);
 app.use("/api/v1/alumni", alumniRouter);
 app.use("/api/v1/articles", articleRouter);
 app.use("/api/v1/events", eventRouter);

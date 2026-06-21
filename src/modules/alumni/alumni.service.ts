@@ -104,7 +104,11 @@ export const alumniService = {
     const isValid = await bcrypt.compare(data.password, alumni.password);
     if (!isValid) return null;
 
-    const access_token = createAccessToken(alumni.id, "ALUMNI");
+    const access_token = createAccessToken({
+      id: alumni.id,
+      role: "alumni",
+      permissions: [],
+    });
 
     return {
       id: alumni.id,

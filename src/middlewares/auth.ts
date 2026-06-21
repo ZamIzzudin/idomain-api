@@ -5,6 +5,9 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: number;
     role: string;
+    permissions: string[];
+    // null = unrestricted approver; number[] = scoped; undefined = legacy token
+    batchScopes?: number[] | null;
     token: string;
   };
 }
@@ -37,6 +40,9 @@ export const isAuthenticated = async (
     req.user = {
       id: decoded.id as number,
       role: decoded.role as string,
+      permissions: decoded.permissions ?? [],
+      // undefined on token -> treat as null (unrestricted) for safety
+      batchScopes: decoded.batchScopes === undefined ? null : decoded.batchScopes,
       token,
     };
 

@@ -1,16 +1,45 @@
-import { type UserRole } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import type { UserQueryRequest } from "./auth.schema";
 
 export const authRepository = {
   findByUsername: (username: string) =>
-    prisma.user.findUnique({ where: { username } }),
+    prisma.user.findUnique({
+      where: { username },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            permissions: {
+              select: { permission: { select: { name: true } } },
+            },
+            batchScopes: { select: { batch: true } },
+          },
+        },
+      },
+    }),
 
   findById: (id: number) =>
-    prisma.user.findUnique({ where: { id } }),
+    prisma.user.findUnique({
+      where: { id },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            permissions: {
+              select: { permission: { select: { name: true } } },
+            },
+            batchScopes: { select: { batch: true } },
+          },
+        },
+      },
+    }),
 
   findPaginated: async (query: UserQueryRequest) => {
-    const { page, limit, search, role, sortBy, sortOrder } = query;
+    const { page, limit, search, roleId, sortBy, sortOrder } = query;
 
     const where: any = {};
 
@@ -21,8 +50,8 @@ export const authRepository = {
       ];
     }
 
-    if (role) {
-      where.role = role;
+    if (roleId) {
+      where.roleId = roleId;
     }
 
     const orderBy: any = { [sortBy]: sortOrder };
@@ -37,8 +66,15 @@ export const authRepository = {
           id: true,
           username: true,
           displayName: true,
-          role: true,
+          status: true,
           createdAt: true,
+          role: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
         },
       }),
       prisma.user.count({ where }),
@@ -57,9 +93,8 @@ export const authRepository = {
     username: string;
     password: string;
     displayName?: string;
-    role?: UserRole;
-  }) =>
-    prisma.user.create({ data }),
+    roleId?: number;
+  }) => prisma.user.create({ data }),
 
   update: (
     id: number,
@@ -67,11 +102,10 @@ export const authRepository = {
       username?: string;
       displayName?: string;
       password?: string;
-      role?: UserRole;
+      roleId?: number;
+      status?: number;
     }
-  ) =>
-    prisma.user.update({ where: { id }, data }),
+  ) => prisma.user.update({ where: { id }, data }),
 
-  remove: (id: number) =>
-    prisma.user.delete({ where: { id } }),
+  remove: (id: number) => prisma.user.delete({ where: { id } }),
 };

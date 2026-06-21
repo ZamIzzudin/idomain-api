@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { alumniController, workHistoryController } from "./alumni.controller";
 import { isAuthenticated } from "../../middlewares/auth";
+import { requirePermission } from "../../middlewares/role";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -88,5 +89,15 @@ alumniRouter.put(
 alumniRouter.delete("/:id", isAuthenticated, alumniController.remove);
 
 // Protected - Approve/Reject
-alumniRouter.put("/:id/approve", isAuthenticated, alumniController.approve);
-alumniRouter.put("/:id/reject", isAuthenticated, alumniController.reject);
+alumniRouter.put(
+  "/:id/approve",
+  isAuthenticated,
+  requirePermission("alumni.approve"),
+  alumniController.approve
+);
+alumniRouter.put(
+  "/:id/reject",
+  isAuthenticated,
+  requirePermission("alumni.approve"),
+  alumniController.reject
+);

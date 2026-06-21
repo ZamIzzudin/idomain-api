@@ -1,8 +1,27 @@
 import type { Request, Response } from "express";
 import { authService } from "./auth.service";
 import { createAccessToken } from "../../lib/jwt";
-import { loginSchema, registerSchema, adjustSchema, userQuerySchema } from "./auth.schema";
+import {
+  loginSchema,
+  registerSchema,
+  adjustSchema,
+  userQuerySchema,
+} from "./auth.schema";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
+
+function issueToken(user: {
+  id: number;
+  role: string;
+  permissions: string[];
+  batchScopes: number[] | null;
+}) {
+  return createAccessToken({
+    id: user.id,
+    role: user.role,
+    permissions: user.permissions,
+    batchScopes: user.batchScopes,
+  });
+}
 
 export const authController = {
   login: async (req: Request, res: Response) => {
@@ -24,7 +43,7 @@ export const authController = {
       });
     }
 
-    const access_token = createAccessToken(user.id, user.role);
+    const access_token = issueToken(user);
 
     return res.json({
       status: 200,
@@ -33,6 +52,10 @@ export const authController = {
       username: user.username,
       display_name: user.displayName,
       role: user.role,
+      roleName: user.roleName,
+      roleId: user.roleId,
+      permissions: user.permissions,
+      batchScopes: user.batchScopes,
       access_token,
     });
   },
@@ -55,6 +78,10 @@ export const authController = {
       username: user.username,
       display_name: user.displayName,
       role: user.role,
+      roleName: user.roleName,
+      roleId: user.roleId,
+      permissions: user.permissions,
+      batchScopes: user.batchScopes,
       access_token: req.user.token,
     });
   },
@@ -71,7 +98,7 @@ export const authController = {
 
     try {
       const user = await authService.register(parsed.data);
-      const access_token = createAccessToken(user.id, user.role);
+      const access_token = issueToken(user);
 
       return res.status(201).json({
         status: 201,
@@ -81,6 +108,10 @@ export const authController = {
           username: user.username,
           display_name: user.displayName,
           role: user.role,
+          roleName: user.roleName,
+          roleId: user.roleId,
+          permissions: user.permissions,
+          batchScopes: user.batchScopes,
           access_token,
         },
       });

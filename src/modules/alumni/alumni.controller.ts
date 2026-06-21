@@ -13,6 +13,7 @@ import {
   updateWorkHistorySchema,
 } from "./alumni.schema";
 import { verifyAccessToken } from "../../lib/jwt";
+import { canApproveAlumni, canAccessAlumniByBatch } from "../../lib/permission";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
 import { uploadToCloudinary } from "../../lib/cloudinary";
 
@@ -43,7 +44,7 @@ export const alumniController = {
     }
 
     if (!query.approved || query.approved === "all") {
-      if (role !== "SUPERADMIN" && role !== "ADMIN") {
+      if (role !== "superadmin" && role !== "admin") {
         query.approved = "true";
       } else {
         delete query.approved;
@@ -52,7 +53,7 @@ export const alumniController = {
 
     const result = await alumniService.list(query);
 
-    const isAdmin = role === "SUPERADMIN" || role === "ADMIN";
+    const isAdmin = role === "superadmin" || role === "admin";
     if (!isAdmin) {
       result.items = stripHiddenFieldsList(result.items);
     }
@@ -135,8 +136,25 @@ export const alumniController = {
 
   update: async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
+    const alumniId = Number(id);
 
     try {
+      // Fetch existing alumni to evaluate batch scope
+      const existing = await alumniService.getById(alumniId);
+      if (!existing) {
+        return res.status(404).json({ status: 404, message: "Alumni not found" });
+      }
+
+      // Batch-scope guard: scoped approvers can only edit alumni within their scope.
+      // Unrestricted users (scope null) pass through.
+      const access = await canAccessAlumniByBatch(req.user!.id, (existing as any).batch);
+      if (!access.allowed) {
+        return res.status(403).json({
+          status: 403,
+          message: access.reason || "You cannot edit this alumni",
+        });
+      }
+
       const payload: any = {};
 
       if (req.body.name) payload.name = req.body.name;
@@ -173,9 +191,26 @@ export const alumniController = {
 
   remove: async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
+    const alumniId = Number(id);
 
     try {
-      await alumniService.remove(Number(id));
+      // Fetch existing alumni to evaluate batch scope
+      const existing = await alumniService.getById(alumniId);
+      if (!existing) {
+        return res.status(404).json({ status: 404, message: "Alumni not found" });
+      }
+
+      // Batch-scope guard: scoped approvers can only delete alumni within their scope.
+      // Unrestricted users (scope null) pass through.
+      const access = await canAccessAlumniByBatch(req.user!.id, (existing as any).batch);
+      if (!access.allowed) {
+        return res.status(403).json({
+          status: 403,
+          message: access.reason || "You cannot delete this alumni",
+        });
+      }
+
+      await alumniService.remove(alumniId);
       return res.json({
         status: 200,
         message: `Successfully removed alumni ${id}`,
@@ -344,9 +379,24 @@ export const alumniController = {
 
   approve: async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
+    const alumniId = Number(id);
 
     try {
-      await alumniService.update(Number(id), { isApproved: true });
+      const alumni = await alumniService.getById(alumniId);
+      if (!alumni) {
+        return res.status(404).json({ status: 404, message: "Alumni not found" });
+      }
+
+      // Batch-scoped authorization check
+      const check = await canApproveAlumni(req.user!.id, (alumni as any).batch);
+      if (!check.allowed) {
+        return res.status(403).json({
+          status: 403,
+          message: check.reason || "You cannot approve this alumni",
+        });
+      }
+
+      await alumniService.update(alumniId, { isApproved: true });
       return res.json({ status: 200, message: "Alumni approved successfully" });
     } catch (error: any) {
       return res.status(400).json({
@@ -358,9 +408,24 @@ export const alumniController = {
 
   reject: async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
+    const alumniId = Number(id);
 
     try {
-      await alumniService.update(Number(id), { isApproved: false });
+      const alumni = await alumniService.getById(alumniId);
+      if (!alumni) {
+        return res.status(404).json({ status: 404, message: "Alumni not found" });
+      }
+
+      // Batch-scoped authorization check (reject requires the same scope as approve)
+      const check = await canApproveAlumni(req.user!.id, (alumni as any).batch);
+      if (!check.allowed) {
+        return res.status(403).json({
+          status: 403,
+          message: check.reason || "You cannot reject this alumni",
+        });
+      }
+
+      await alumniService.update(alumniId, { isApproved: false });
       return res.json({ status: 200, message: "Alumni rejected successfully" });
     } catch (error: any) {
       return res.status(400).json({

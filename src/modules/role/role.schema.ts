@@ -1,0 +1,32 @@
+import { z } from "zod";
+
+export const createRoleSchema = z.object({
+  name: z.string().min(1).max(100),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "slug must be lowercase, no spaces"),
+  description: z.string().max(500).optional(),
+  permissionIds: z.array(z.number().int().positive()).default([]),
+  // Optional batch scope for alumni.approve.
+  // Empty/undefined = unrestricted (can approve any batch).
+  batchScopes: z.array(z.number().int().min(1900).max(2100)).optional(),
+});
+
+export const updateRoleSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, "slug must be lowercase, no spaces")
+    .optional(),
+  description: z.string().max(500).optional(),
+  permissionIds: z.array(z.number().int().positive()).optional(),
+  // Pass an empty array to reset to unrestricted.
+  batchScopes: z.array(z.number().int().min(1900).max(2100)).optional(),
+});
+
+export type CreateRoleRequest = z.infer<typeof createRoleSchema>;
+export type UpdateRoleRequest = z.infer<typeof updateRoleSchema>;

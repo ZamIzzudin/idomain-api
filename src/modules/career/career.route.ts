@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { careerController } from "./career.controller";
 import { isAuthenticated } from "../../middlewares/auth";
+import { requirePermission } from "../../middlewares/role";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -40,5 +41,15 @@ careerRouter.put(
 careerRouter.delete("/:id", isAuthenticated, careerController.remove);
 
 // Protected - Admin only (approve/reject)
-careerRouter.put("/:id/approve", isAuthenticated, careerController.approve);
-careerRouter.put("/:id/reject", isAuthenticated, careerController.reject);
+careerRouter.put(
+  "/:id/approve",
+  isAuthenticated,
+  requirePermission("career.approve"),
+  careerController.approve
+);
+careerRouter.put(
+  "/:id/reject",
+  isAuthenticated,
+  requirePermission("career.approve"),
+  careerController.reject
+);
