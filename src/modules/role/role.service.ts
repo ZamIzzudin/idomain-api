@@ -2,16 +2,39 @@ import { prisma } from "../../lib/prisma";
 import { roleRepository, permissionRepository } from "./role.repository";
 import type { CreateRoleRequest, UpdateRoleRequest } from "./role.schema";
 
+/**
+ * Convert a free-form name into a URL-safe slug
+ * (lowercase, ASCII alnum + dashes).
+ */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Generate a unique slug derived from `name`. Collisions are resolved by
+ * appending an incrementing numeric suffix (-2, -3, ...).
+ */
+async function generateUniqueSlug(name: string): Promise<string> {
+  const base = slugify(name) || "role";
+  let candidate = base;
+  let suffix = 2;
+  while (await roleRepository.findBySlug(candidate)) {
+    candidate = `${base}-${suffix++}`;
+  }
+  return candidate;
+}
+
 export const roleService = {
   list: () => roleRepository.list(),
 
   permissions: () => permissionRepository.list(),
 
   create: async (payload: CreateRoleRequest) => {
-    const existing = await roleRepository.findBySlug(payload.slug);
-    if (existing) {
-      throw new Error("Role slug already exists");
-    }
+    // Slug is always generated from name; callers may not supply it.
+    const slug = await generateUniqueSlug(payload.name);
 
     // Validate all permission ids exist
     if (payload.permissionIds.length > 0) {
@@ -25,7 +48,7 @@ export const roleService = {
 
     const role = await roleRepository.create({
       name: payload.name,
-      slug: payload.slug,
+      slug,
       description: payload.description,
     });
 
@@ -48,16 +71,14 @@ export const roleService = {
       throw new Error("Cannot change slug of a system role");
     }
 
-    // Slug uniqueness (if changing)
-    if (payload.slug && payload.slug !== existing.slug) {
-      const clash = await roleRepository.findBySlug(payload.slug);
-      if (clash) throw new Error("Role slug already exists");
-    }
-
     const data: { name?: string; slug?: string; description?: string } = {};
     if (payload.name !== undefined) data.name = payload.name;
-    if (payload.slug !== undefined && !existing.isSystem) data.slug = payload.slug;
     if (payload.description !== undefined) data.description = payload.description;
+
+    // Regenerate the slug when a non-system role is renamed.
+    if (payload.name !== undefined && !existing.isSystem) {
+      data.slug = await generateUniqueSlug(payload.name);
+    }
 
     if (Object.keys(data).length > 0) {
       await roleRepository.update(id, data);

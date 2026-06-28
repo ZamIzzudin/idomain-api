@@ -29,7 +29,8 @@ export function stripHiddenFieldsList(items: any[]) {
 }
 
 export const alumniService = {
-  list: (query: AlumniQueryRequest) => alumniRepository.findPaginated(query),
+  list: (query: AlumniQueryRequest, batches?: number[] | null) =>
+    alumniRepository.findPaginated(query, batches),
 
   getById: (id: number) => alumniRepository.findById(id),
 
@@ -165,15 +166,15 @@ export const alumniService = {
     };
   },
 
-  filterOptions: (province?: string) =>
+  filterOptions: (province?: string, batches?: number[] | null) =>
     Promise.all([
-      alumniRepository.findDistinctYears(),
-      alumniRepository.findDistinctSpecializations(),
-      alumniRepository.findDistinctProvinces(),
-      alumniRepository.findDistinctCities(province),
+      alumniRepository.findDistinctYears(batches),
+      alumniRepository.findDistinctSpecializations(batches),
+      alumniRepository.findDistinctProvinces(batches),
+      alumniRepository.findDistinctCities(province, batches),
     ]).then(([years, specializations, provinces, cities]) => ({ years, specializations, provinces, cities })),
 
-  stats: () => alumniRepository.getStats(),
+  stats: (batches?: number[] | null) => alumniRepository.getStats(batches),
 
   importFromExcel: async (buffer: Buffer) => {
     const workbook = XLSX.read(buffer, { type: "buffer" });
@@ -248,8 +249,8 @@ export const alumniService = {
     };
   },
 
-  exportToExcel: async () => {
-    const data = await alumniRepository.exportAll();
+  exportToExcel: async (batches?: number[] | null) => {
+    const data = await alumniRepository.exportAll(batches);
 
     const rows = data.map((item) => ({
       name: item.name,

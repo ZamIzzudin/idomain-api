@@ -17,6 +17,29 @@ import { canApproveAlumni, canAccessAlumniByBatch } from "../../lib/permission";
 import type { AuthenticatedRequest } from "../../middlewares/auth";
 import { uploadToCloudinary } from "../../lib/cloudinary";
 
+/**
+ * Resolve the caller's batch scope from the Authorization header.
+ *
+ * Returns:
+ *  - { scope: null }    -> anonymous (public) caller, treated as unrestricted.
+ *  - { scope: number[] } -> authenticated scoped approver (only these batches).
+ *  - { scope: null }     -> authenticated unrestricted user (any batch).
+ */
+function resolveScope(authHeader?: string): Promise<{
+  scope: number[] | null;
+  role: string | undefined;
+}> {
+  if (!authHeader?.startsWith("Bearer ")) {
+    return Promise.resolve({ scope: null, role: undefined });
+  }
+  return verifyAccessToken(authHeader.split(" ")[1])
+    .then((decoded: any) => ({
+      scope: decoded?.batchScopes === undefined ? null : decoded.batchScopes,
+      role: decoded?.role,
+    }))
+    .catch(() => ({ scope: null, role: undefined }));
+}
+
 export const alumniController = {
   list: async (req: Request, res: Response) => {
     const parsed = alumniQuerySchema.safeParse(req.query);
@@ -31,17 +54,8 @@ export const alumniController = {
 
     const query = parsed.data;
 
-    // Extract role from token if present (optional auth)
-    let role: string | undefined;
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith("Bearer ")) {
-      try {
-        const decoded = verifyAccessToken(
-          authHeader.split(" ")[1],
-        ) as any;
-        role = decoded?.role;
-      } catch {}
-    }
+    // Resolve the caller's batch scope from the token if present (optional auth)
+    const { scope, role } = await resolveScope(req.headers.authorization);
 
     if (!query.approved || query.approved === "all") {
       if (role !== "superadmin" && role !== "admin") {
@@ -51,7 +65,7 @@ export const alumniController = {
       }
     }
 
-    const result = await alumniService.list(query);
+    const result = await alumniService.list(query, scope);
 
     const isAdmin = role === "superadmin" || role === "admin";
     if (!isAdmin) {
@@ -67,12 +81,14 @@ export const alumniController = {
 
   filterOptions: async (req: Request, res: Response) => {
     const province = req.query.province as string | undefined;
-    const options = await alumniService.filterOptions(province);
+    const { scope } = await resolveScope(req.headers.authorization);
+    const options = await alumniService.filterOptions(province, scope);
     return res.json({ status: 200, message: "success", data: options });
   },
 
-  stats: async (_req: Request, res: Response) => {
-    const stats = await alumniService.stats();
+  stats: async (req: Request, res: Response) => {
+    const { scope } = await resolveScope(req.headers.authorization);
+    const stats = await alumniService.stats(scope);
     return res.json({ status: 200, message: "success", data: stats });
   },
 
@@ -84,7 +100,18 @@ export const alumniController = {
       return res.status(404).json({ status: 404, message: "Alumni not found" });
     }
 
-    return res.json({ status: 200, message: "success", data: alumni });
+    // Enforce batch scope for authenticated scoped users viewing a record
+    const { scope, role } = await resolveScope(req.headers.authorization);
+    const isAdmin = role === "superadmin" || role === "admin";
+    if (scope && !isAdmin) {
+      const batch = (alumni as any).batch;
+      if (batch === null || batch === undefined || !scope.includes(batch)) {
+        return res.status(403).json({ status: 403, message: "Alumni out of your batch scope" });
+      }
+    }
+
+    const out = isAdmin ? alumni : stripHiddenFields(alumni);
+    return res.json({ status: 200, message: "success", data: out });
   },
 
   create: async (req: AuthenticatedRequest, res: Response) => {
@@ -460,9 +487,12 @@ export const alumniController = {
     }
   },
 
-  exportExcel: async (_req: AuthenticatedRequest, res: Response) => {
+  exportExcel: async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const buffer = await alumniService.exportToExcel();
+      // Scoped approvers only export alumni within their batch scope.
+      // null = unrestricted (superadmin / admin).
+      const scope = req.user?.batchScopes ?? null;
+      const buffer = await alumniService.exportToExcel(scope);
 
       const date = new Date().toISOString().slice(0, 10);
       res.setHeader(

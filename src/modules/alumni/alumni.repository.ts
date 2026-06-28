@@ -2,7 +2,10 @@ import { prisma } from "../../lib/prisma";
 import type { AlumniQueryRequest } from "./alumni.schema";
 
 export const alumniRepository = {
-  findPaginated: async (query: AlumniQueryRequest) => {
+  findPaginated: async (
+    query: AlumniQueryRequest,
+    batches?: number[] | null,
+  ) => {
     const { page, perPage, q, graduationYear, specialization, province, city, sort, approved } = query;
 
     const where: any = { status: 1 };
@@ -11,6 +14,13 @@ export const alumniRepository = {
       where.isApproved = true;
     } else if (approved === "false") {
       where.isApproved = false;
+    }
+
+    // Batch-scope filter: when a non-null scope is provided, restrict to alumni
+    // whose batch is in the scope. Alumni without a batch are excluded for
+    // scoped users (mirrors the canAccessAlumniByBatch guard).
+    if (batches) {
+      where.batch = { in: batches };
     }
 
     if (q) {
@@ -157,9 +167,11 @@ export const alumniRepository = {
   remove: (id: number) =>
     prisma.alumni.delete({ where: { id } }),
 
-  findDistinctYears: async () => {
+  findDistinctYears: async (batches?: number[] | null) => {
+    const where: any = { status: 1, isApproved: true };
+    if (batches) where.batch = { in: batches };
     const results = await prisma.alumni.findMany({
-      where: { status: 1, isApproved: true },
+      where,
       select: { graduationYear: true },
       distinct: ["graduationYear"],
       orderBy: { graduationYear: "desc" },
@@ -167,9 +179,11 @@ export const alumniRepository = {
     return results.map((r) => r.graduationYear);
   },
 
-  findDistinctSpecializations: async () => {
+  findDistinctSpecializations: async (batches?: number[] | null) => {
+    const where: any = { status: 1, isApproved: true, specialization: { not: null } };
+    if (batches) where.batch = { in: batches };
     const results = await prisma.alumni.findMany({
-      where: { status: 1, isApproved: true, specialization: { not: null } },
+      where,
       select: { specialization: true },
       distinct: ["specialization"],
       orderBy: { specialization: "asc" },
@@ -177,9 +191,11 @@ export const alumniRepository = {
     return results.map((r) => r.specialization).filter(Boolean) as string[];
   },
 
-  findDistinctProvinces: async () => {
+  findDistinctProvinces: async (batches?: number[] | null) => {
+    const where: any = { status: 1, isApproved: true, province: { not: null } };
+    if (batches) where.batch = { in: batches };
     const results = await prisma.alumni.findMany({
-      where: { status: 1, isApproved: true, province: { not: null } },
+      where,
       select: { province: true },
       distinct: ["province"],
       orderBy: { province: "asc" },
@@ -187,11 +203,12 @@ export const alumniRepository = {
     return results.map((r) => r.province).filter(Boolean) as string[];
   },
 
-  findDistinctCities: async (province?: string) => {
+  findDistinctCities: async (province?: string, batches?: number[] | null) => {
     const where: any = { status: 1, isApproved: true, city: { not: null } };
     if (province) {
       where.province = { contains: province, mode: "insensitive" };
     }
+    if (batches) where.batch = { in: batches };
     const results = await prisma.alumni.findMany({
       where,
       select: { city: true },
@@ -201,32 +218,34 @@ export const alumniRepository = {
     return results.map((r) => r.city).filter(Boolean) as string[];
   },
 
-  getStats: async () => {
+  getStats: async (batches?: number[] | null) => {
+    const scopeWhere = batches ? { status: 1, batch: { in: batches } } : { status: 1 };
+
     const total = await prisma.alumni.count({
-      where: { status: 1, isApproved: true },
+      where: { ...scopeWhere, isApproved: true },
     });
 
     const pendingCount = await prisma.alumni.count({
-      where: { status: 1, isApproved: false },
+      where: { ...scopeWhere, isApproved: false },
     });
 
     const byProvince = await prisma.alumni.groupBy({
       by: ["province"],
-      where: { status: 1, isApproved: true, province: { not: null } },
+      where: { ...scopeWhere, isApproved: true, province: { not: null } },
       _count: { province: true },
       orderBy: { _count: { province: "desc" } },
     });
 
     const byYear = await prisma.alumni.groupBy({
       by: ["graduationYear"],
-      where: { status: 1, isApproved: true },
+      where: { ...scopeWhere, isApproved: true },
       _count: { graduationYear: true },
       orderBy: { graduationYear: "asc" },
     });
 
     const bySpecialization = await prisma.alumni.groupBy({
       by: ["specialization"],
-      where: { status: 1, isApproved: true, specialization: { not: null } },
+      where: { ...scopeWhere, isApproved: true, specialization: { not: null } },
       _count: { specialization: true },
       orderBy: { _count: { specialization: "desc" } },
       take: 10,
@@ -234,7 +253,7 @@ export const alumniRepository = {
 
     const byBatch = await prisma.alumni.groupBy({
       by: ["batch"],
-      where: { status: 1, isApproved: true, batch: { not: null } },
+      where: { ...scopeWhere, isApproved: true, batch: { not: null } },
       _count: { batch: true },
       orderBy: { batch: "asc" },
     });
@@ -276,9 +295,11 @@ export const alumniRepository = {
     });
   },
 
-  exportAll: async () => {
+  exportAll: async (batches?: number[] | null) => {
+    const where: any = { status: 1 };
+    if (batches) where.batch = { in: batches };
     return prisma.alumni.findMany({
-      where: { status: 1 },
+      where,
       orderBy: { name: "asc" },
       select: {
         name: true,
